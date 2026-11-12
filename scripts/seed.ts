@@ -2,7 +2,7 @@
 // (<firstname>@example.com / demo1234), so you can log in as any of them.
 // Re-runnable: deletes the seed users' profiles (cascading to their rows) and inserts fresh ones.
 import { randomUUID } from "node:crypto"
-import { inArray, sql } from "drizzle-orm"
+import { inArray } from "drizzle-orm"
 import { db } from "../lib/db"
 import { lessons, profiles, programs, purchases, reviews, slots } from "../lib/db/schema"
 import * as mock from "../lib/mock-data"
@@ -10,19 +10,23 @@ import * as mock from "../lib/mock-data"
 const PASSWORD = "demo1234"
 const emailFor = (slug: string) => `${slug.split("-")[0]}@example.com`
 
+// Goes through the Auth API rather than reading neon_auth."user": Neon Auth may live in a different database
+// than DATABASE_URL. Signs up, or signs in when the user already exists (a rerun).
 async function authUserId(name: string, email: string) {
-  const { rows } = await db.execute<{ id: string }>(sql`select id from neon_auth."user" where email = ${email}`)
-  if (rows[0]) return rows[0].id
-
   // Auth rate-limits sign-ups, so back off and retry on 429
-  for (let attempt = 1; ; attempt++) {
-    const res = await fetch(`${process.env.NEON_AUTH_BASE_URL}/sign-up/email`, {
+  for (let attempt = 1, path = "sign-up"; ; attempt++) {
+    const res = await fetch(`${process.env.NEON_AUTH_BASE_URL}/${path}/email`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Origin: "http://localhost:3000" },
       body: JSON.stringify({ name, email, password: PASSWORD }),
     })
     if (res.ok) return ((await res.json()) as { user: { id: string } }).user.id
-    if (res.status !== 429 || attempt === 10) throw new Error(`Sign-up failed for ${email}: ${res.status} ${await res.text()}`)
+    const body = await res.text()
+    if (path === "sign-up" && res.status === 422 && /exist/i.test(body)) {
+      path = "sign-in"
+      continue
+    }
+    if (res.status !== 429 || attempt === 10) throw new Error(`${path} failed for ${email}: ${res.status} ${body}`)
     const wait = Number(res.headers.get("retry-after")) || 10
     console.log(`Rate limited, retrying ${email} in ${wait}s`)
     await new Promise((r) => setTimeout(r, wait * 1000))
@@ -62,7 +66,15 @@ async function main() {
     })),
   )
   await db.insert(lessons).values(
-    mock.programs.flatMap((p) => p.lessons.map((l) => ({ programId: programIds[p.id], title: l.title, position: l.position }))),
+    mock.programs.flatMap((p) =>
+      p.lessons.map((l) => ({
+        programId: programIds[p.id],
+        title: l.title,
+        position: l.position,
+        // Uploaded once by scripts/upload-videos.ts
+        videoPath: mock.lessonVideoPath(p.id, l.position),
+      })),
+    ),
   )
 
   // Shift the mock week forward in whole weeks so slots stay in the future and keep their weekdays

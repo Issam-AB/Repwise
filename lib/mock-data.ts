@@ -422,3 +422,54 @@ export const getProgram = (id: string) => programs.find((p) => p.id === id)
 export const getSlot = (id: string) => slots.find((s) => s.id === id)
 export const person = (id: string) =>
   trainers.find((t) => t.id === id) ?? clients.find((c) => c.id === id)
+
+// Lesson videos: free Pexels clips (pexels.com/license), three per program, rotated across its lessons.
+// scripts/upload-videos.ts copies them to ImageKit as private files at lessonVideoPath(); the seed points lessons there.
+const pexels = (id: number, file: string) => `https://videos.pexels.com/video-files/${id}/${file}`
+export const lessonVideos: Record<string, string[]> = {
+  "strength-foundations": [
+    pexels(5319755, "5319755-hd_1920_1080_25fps.mp4"),
+    pexels(5319759, "5319759-hd_1920_1080_25fps.mp4"),
+    pexels(4859758, "4859758-hd_1920_1080_25fps.mp4"),
+  ],
+  "upper-body-sculpt": [
+    pexels(4367541, "4367541-hd_1920_1080_30fps.mp4"),
+    pexels(5319099, "5319099-hd_1920_1080_25fps.mp4"),
+    pexels(31445381, "13411076_1920_1080_25fps.mp4"),
+  ],
+  "hiit-shred-30": [
+    pexels(8858142, "8858142-hd_1920_1080_25fps.mp4"),
+    pexels(6326725, "6326725-hd_1920_1080_25fps.mp4"),
+    pexels(4812842, "4812842-hd_1920_1080_25fps.mp4"),
+  ],
+  "mobility-reset": [
+    pexels(4812503, "4812503-hd_1920_1080_25fps.mp4"),
+    pexels(6023282, "6023282-hd_1920_1080_25fps.mp4"),
+    pexels(4259079, "4259079-hd_1920_1080_25fps.mp4"),
+  ],
+  "morning-flow": [
+    pexels(2376809, "2376809-hd_1920_1080_24fps.mp4"),
+    pexels(2376796, "2376796-hd_1920_1080_24fps.mp4"),
+    pexels(3209702, "3209702-hd_1920_1080_25fps.mp4"),
+  ],
+  "boxing-fundamentals": [
+    pexels(4438088, "4438088-hd_1920_1080_25fps.mp4"),
+    pexels(4806570, "4806570-hd_1920_1080_25fps.mp4"),
+    pexels(5752365, "5752365-hd_1080_1920_25fps.mp4"),
+  ],
+  "couch-to-10k": [
+    pexels(3125907, "3125907-hd_1920_1080_25fps.mp4"),
+    pexels(3191933, "3191933-hd_1920_1080_25fps.mp4"),
+    pexels(19771786, "19771786-hd_1080_1920_30fps.mp4"),
+  ],
+  "bodyweight-at-home": [
+    pexels(4367576, "4367576-hd_1920_1080_30fps.mp4"),
+    pexels(8856808, "8856808-hd_1080_1920_24fps.mp4"),
+    pexels(4812839, "4812839-hd_1920_1080_25fps.mp4"),
+  ],
+}
+// The ImageKit path of a demo lesson's video (positions start at 1)
+export const lessonVideoPath = (programId: string, position: number) => {
+  const clips = lessonVideos[programId]
+  return clips ? `/lessons/demo/${programId}-${((position - 1) % clips.length) + 1}.mp4` : null
+}

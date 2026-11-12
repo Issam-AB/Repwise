@@ -38,7 +38,7 @@ function Grid({ trainerId, firstName, isSelf, since, sealedQuery, initialData }:
   const [error, setError] = useState<string>()
   const book = (slotId: string) => async () => {
     setError(undefined)
-    const result = await bookSlot(slotId) // redirects to /library on success
+    const result = await bookSlot(slotId) // redirects to Stripe Checkout on success
     setError(result?.error)
     return undefined
   }
