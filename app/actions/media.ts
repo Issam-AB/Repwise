@@ -32,7 +32,10 @@ export async function signLessonUrl(lessonId: string, url: string) {
   const hasPurchase = viewer ? await ownsProgram(viewer.id, program.id) : false
   // Lessons come ordered by position, so the first is the free preview
   if (!canWatchLesson({ isPreview: program.lessons[0].id === lessonId, isOwner, hasPurchase })) return null
-  if (!isDerivedUrl(url, fileUrl(lesson.videoPath))) return null
+  const file = fileUrl(lesson.videoPath)
+  if (!isDerivedUrl(url, file)) return null
 
-  return signUrl(url, 60 * 60)
+  // `orig-true` serves the uploaded MP4 untouched. Without it ImageKit re-encodes for each browser (by User-Agent),
+  // which spends video-processing quota and 403s "Video transformations limit exceeded" once that runs out.
+  return signUrl(url === file ? `${file}?tr=orig-true` : url, 60 * 60)
 }
