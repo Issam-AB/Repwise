@@ -26,10 +26,12 @@ export function LessonPlayer({ lessonId, src, poster }: { lessonId: string; src:
         video,
         {
           imagekitId,
-          abs: { protocol: "hls", sr: [360, 480, 720, 1080] },
-          seekThumbnails: true,
-          // Runs for every private file the player loads (HLS manifest, seek thumbnails, subtitles, chapters), and
-          // the server re-checks access each time. The public cover poster passes through as-is.
+          // Plays the original MP4. HLS (`abs`), seek thumbnails, AI subtitles and chapters are ImageKit video
+          // transformations; once the plan's video-processing quota runs out they all 403 ("Video transformations
+          // limit exceeded") and the player shows "media could not be loaded". The original file always streams.
+          seekThumbnails: false,
+          // Runs for every private file the player loads, and the server re-checks access each time.
+          // The public cover poster passes through as-is.
           signerFn: async (url) => {
             if (!url.startsWith(src)) return url
             const signed = await signLessonUrl(lessonId, url)
@@ -39,8 +41,7 @@ export function LessonPlayer({ lessonId, src, poster }: { lessonId: string; src:
         },
         { fill: true, controls: true, preload: "auto" },
       )
-      // AI-generated subtitles and chapters, built by ImageKit from the video itself
-      player.src({ src, poster: poster ? { src: poster } : undefined, chapters: true, textTracks: [{ autoGenerate: true }] })
+      player.src({ src, poster: poster ? { src: poster } : undefined })
     })
     return () => {
       clearTimeout(start)
